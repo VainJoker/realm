@@ -86,13 +86,13 @@ impl RealmeBuilder {
     //     eprintln!("555");
     //     Ok(realme)
     // }
-    pub fn build(mut self) -> Result<Realme, RealmeError> {
+    pub fn build(mut self) -> Result<SharedRealme, RealmeError> {
         let (tx1, rx1) = crossbeam::channel::unbounded::<super::watcher::Event>();
         let (tx2, rx2) = crossbeam::channel::unbounded::<super::watcher::Event>();
         
         let realme = self.parse((tx1.clone(), rx2.clone()))?;
-        let realme_arc = Arc::new(Mutex::new(realme));
-        let realme_clone = realme_arc.clone();
+        let shared_realme = SharedRealme::new(realme);
+        let realme_clone = shared_realme.inner.clone();
         
         let builder_arc = Arc::new(Mutex::new(self));
         
@@ -100,9 +100,11 @@ impl RealmeBuilder {
             loop {
                 match rx1.recv() {
                     Ok(Event::Changed) => {
+                        eprintln!("Changed");
                         let mut builder = builder_arc.lock().expect("Failed to lock builder");
                         match builder.parse((tx1.clone(), rx2.clone())) {
                             Ok(new_realme) => {
+                                eprintln!("new_realme: {:?}", new_realme);
                                 let mut realme = realme_clone.lock().expect("Failed to lock realme");
                                 *realme = new_realme;
                             },
@@ -117,10 +119,7 @@ impl RealmeBuilder {
             }
         });
     
-        Ok(Realme {
-            cache: Arc::clone(&realme_arc).lock().expect("Failed to lock realme").cache.clone(),
-            builder: None,
-        })
+        Ok(shared_realme)
     }
 
     
@@ -144,3 +143,19 @@ impl RealmeBuilder {
     }
 }
 
+#[derive(Debug)]
+pub struct SharedRealme {
+    inner: Arc<Mutex<Realme>>,
+}
+
+impl SharedRealme {
+    pub fn new(realme: Realme) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(realme)),
+        }
+    }
+
+    pub fn get(&self) -> std::sync::MutexGuard<Realme> {
+        self.inner.lock().expect("Failed to lock realme")
+    }
+}

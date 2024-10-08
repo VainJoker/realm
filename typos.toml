@@ -1,5 +1,5 @@
 # configuration for https://github.com/crate-ci/typos
 
 [default.extend-words]
-default = "default2"
+default = "default"
 ba = "ba"

@@ -11,13 +11,13 @@ fn main() {
         .build()
         .expect("Building configuration object");
 
-    let value: String = realme
-        .get("key1")
-        .expect("Accessing configuration object")
-        .try_into()
-        .unwrap();
+    // let value: String = realme
+    //     .get("key1")
+    //     .expect("Accessing configuration object")
+    //     .try_into()
+    //     .unwrap();
 
-    println!("'key1' Config element is: '{value:?}'");
+    // println!("'key1' Config element is: '{value:?}'");
 }
 
 #[cfg(not(feature = "toml"))]

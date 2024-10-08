@@ -125,12 +125,12 @@ impl Realme {
         })
     }
 
-    pub fn reload(&mut self) -> Result<(), RealmeError> {
-        if let Some(builder) = self.builder.take() {
-            let realme = builder.build()?;
-            self.cache = realme.cache;
-            self.builder = None;
-        }
-        Ok(())
-    }
+    // pub fn reload(&mut self) -> Result<(), RealmeError> {
+    //     if let Some(builder) = self.builder.take() {
+    //         let realme = builder.build()?;
+    //         self.cache = realme.cache;
+    //         self.builder = None;
+    //     }
+    //     Ok(())
+    // }
 }

@@ -57,8 +57,8 @@ impl<'a, T, U> CmdSource<'a, T, U> {
 
 impl<'a, T, U> Source for CmdSource<'a, T, U>
 where
-    T: Parser<U>,
-    U: AsRef<str> + Clone,
+    T: Parser<U> + Send + Sync,
+    U: AsRef<str> + Clone + Send + Sync,
 {
     /// Parses the command output into a `Value`.
     ///
@@ -100,5 +100,9 @@ where
     /// Always returns `SourceType::Cmd`.
     fn source_type(&self) -> SourceType {
         SourceType::Cmd
+    }
+
+    fn watch(&self, chan: crate::realme::watcher::Channel, interval: std::time::Duration) {
+        todo!()
     }
 }

@@ -7,10 +7,12 @@ pub mod file;
 /// Module for string-related functionality
 pub mod string;
 
+use std::time::Duration;
+
 use crate::{errors::RealmeError, value::Value};
 
 /// Trait representing a source of configuration or data
-pub trait Source {
+pub trait Source: Send + Sync {
     /// Parses the source and returns a `Value` or an error
     ///
     /// # Returns
@@ -23,6 +25,9 @@ pub trait Source {
     /// # Returns
     /// The `SourceType` of this source
     fn source_type(&self) -> SourceType;
+
+    /// Watch the source of the adaptor.
+    fn watch(&self, chan: crate::realme::watcher::Channel, interval: Duration);
 }
 
 /// Enum representing different types of sources

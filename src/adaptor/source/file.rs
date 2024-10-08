@@ -1,11 +1,17 @@
 #![cfg(feature = "file")]
 use std::{
+    fs,
     marker::PhantomData,
     path::{Path, PathBuf},
+    thread,
+    time::Duration,
 };
 
 use super::{Source, SourceType};
-use crate::{Parser, RealmeError, Value};
+use crate::{
+    Parser, RealmeError, Value,
+    realme::watcher::{Channel, Event},
+};
 
 /// Represents a source that reads configuration data from a file.
 ///
@@ -54,8 +60,8 @@ impl<U: AsRef<Path>, T> FileSource<T, U> {
 
 impl<T, U> Source for FileSource<T, U>
 where
-    T: for<'a> Parser<&'a str>,
-    U: AsRef<Path>,
+    T: for<'a> Parser<&'a str> + Send + Sync,
+    U: AsRef<Path> + Send + Sync,
 {
     /// Parses the file at the specified path using the parser type `T`.
     ///
@@ -90,5 +96,41 @@ where
     /// Always returns `SourceType::Str`.
     fn source_type(&self) -> SourceType {
         SourceType::Str
+    }
+
+    fn watch(&self, chan: Channel, interval: Duration) {
+        eprintln!("666");
+        thread::spawn(move || {
+            loop {
+                thread::sleep(interval);
+
+                match chan.1.recv() {
+                    Ok(Event::Stopped) => break,
+                    Ok(e) => {
+                        RealmeError::Unknown(format!("{:?}", e));
+                        break;
+                    }
+                    Err(e) => {
+                        RealmeError::Unknown(format!("{:?}", e));
+                        break;
+                    }
+                }
+            }
+        });
+        eprintln!("444");
+        let path = self.path.as_ref().to_path_buf();
+        thread::spawn(move || {
+            let mut last_modified =
+                fs::metadata(&path).unwrap().modified().unwrap();
+            loop {
+                thread::sleep(interval);
+                let modified = fs::metadata(&path).unwrap().modified().unwrap();
+                if modified != last_modified {
+                    last_modified = modified;
+                    chan.0.send(Event::Changed).unwrap();
+                }
+            }
+        });
+        eprintln!("888");
     }
 }

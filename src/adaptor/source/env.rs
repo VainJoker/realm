@@ -58,8 +58,8 @@ where
 
 impl<'a, T, U> Source for EnvSource<'a, T, U>
 where
-    T: Parser<U>,
-    U: AsRef<str> + Clone,
+    T: Parser<U> + Send + Sync,
+    U: AsRef<str> + Clone + Send + Sync,
 {
     /// Parses the environment variables starting with the specified prefix into
     /// a `Value`.
@@ -93,5 +93,9 @@ where
     /// Returns the source type as `SourceType::Env`.
     fn source_type(&self) -> SourceType {
         SourceType::Env
+    }
+
+    fn watch(&self, chan: crate::realme::watcher::Channel, interval: std::time::Duration) {
+        todo!()
     }
 }

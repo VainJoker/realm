@@ -1,8 +1,8 @@
-use std::fmt::Formatter;
+use std::{fmt::Formatter, time::Duration};
 
 use source::Source;
 
-use crate::{errors::RealmeError, value::Value};
+use crate::{errors::RealmeError, realme::watcher::Channel, value::Value};
 
 pub mod format;
 pub mod parser;
@@ -13,6 +13,7 @@ pub struct Adaptor {
     /// The underlying source of configuration data.
     source: Box<dyn Source>,
     pub priority: Option<usize>,
+    pub interval: Option<Duration>,
 }
 
 impl std::fmt::Debug for Adaptor {
@@ -27,6 +28,7 @@ impl Adaptor {
         Self {
             source: Box::new(source),
             priority: None,
+            interval: None,
         }
     }
 
@@ -60,6 +62,25 @@ impl Adaptor {
     #[must_use]
     pub const fn priority(mut self, priority: usize) -> Self {
         self.priority = Some(priority);
+        self
+    }
+
+    /// Watch the source of the adaptor.
+    ///
+    /// # Returns
+    ///
+    /// Returns the adaptor with the watch set.
+    pub fn watcher(&self, chan: crate::realme::watcher::Channel) {
+        eprintln!("333");
+        if let Some(interval) = self.interval {
+            self.source.watch(chan, interval);
+        }
+        eprintln!("777");
+    }
+
+    #[must_use]
+    pub fn watch(mut self, interval: Duration) -> Self {
+        self.interval = Some(interval);
         self
     }
 }

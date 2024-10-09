@@ -1,14 +1,4 @@
-use std::{
-    fs,
-    path::{self, Path, PathBuf},
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
-
-use crossbeam::channel::{Receiver, Sender, bounded};
-
-use crate::{Realme, RealmeError, RealmeResult};
+use crossbeam::channel::{Receiver, Sender};
 
 // /// A watcher for the `Realme` configuration.
 // ///

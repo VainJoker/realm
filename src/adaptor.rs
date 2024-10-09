@@ -2,7 +2,7 @@ use std::{fmt::Formatter, time::Duration};
 
 use source::Source;
 
-use crate::{errors::RealmeError, realme::watcher::Channel, value::Value};
+use crate::{errors::RealmeError, value::Value};
 
 pub mod format;
 pub mod parser;
@@ -79,7 +79,7 @@ impl Adaptor {
     }
 
     #[must_use]
-    pub fn watch(mut self, interval: Duration) -> Self {
+    pub const fn watch(mut self, interval: Duration) -> Self {
         self.interval = Some(interval);
         self
     }

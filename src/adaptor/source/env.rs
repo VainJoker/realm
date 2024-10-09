@@ -95,7 +95,11 @@ where
         SourceType::Env
     }
 
-    fn watch(&self, chan: crate::realme::watcher::Channel, interval: std::time::Duration) {
+    fn watch(
+        &self,
+        _chan: crate::realme::watcher::Channel,
+        _interval: std::time::Duration,
+    ) {
         todo!()
     }
 }

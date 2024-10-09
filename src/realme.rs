@@ -8,6 +8,7 @@ use crate::{Value, errors::RealmeError};
 mod api;
 mod builder;
 mod cache;
+mod shared;
 pub mod watcher;
 
 /// Represents a configuration realme with a cache for storing configuration
@@ -15,8 +16,8 @@ pub mod watcher;
 #[derive(Debug, Deserialize)]
 pub struct Realme {
     cache: Value,
-    #[serde(skip)]
-    builder: Option<RealmeBuilder>,
+    // #[serde(skip)]
+    // builder: Option<RealmeBuilder>,
 }
 
 impl Realme {
@@ -24,7 +25,7 @@ impl Realme {
     ///
     /// But you should use `Realme::builder()` to create a new `Realme`.
     pub const fn new(value: Value) -> Self {
-        Self { cache: value, builder: None }
+        Self { cache: value }
     }
 
     /// Creates a new `RealmeBuilder` for constructing a `Realme`.
@@ -121,7 +122,6 @@ impl Realme {
     pub fn try_serialize<T: Serialize>(from: &T) -> Result<Self, RealmeError> {
         Ok(Self {
             cache: Value::try_serialize(from)?,
-            builder: None,
         })
     }
 

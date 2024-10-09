@@ -1,7 +1,17 @@
-use std::{sync::{Arc, Mutex}, thread};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
-use super::{cache::RealmeCache, watcher::{Channel, Event}, Realme};
-use crate::{adaptor::source::SourceType, Adaptor, RealmeError, RealmeResult, Value};
+use super::{
+    Realme,
+    cache::RealmeCache,
+    shared::SharedRealme,
+    watcher::{Channel, Event},
+};
+use crate::{
+    Adaptor, RealmeError, RealmeResult, Value, adaptor::source::SourceType,
+};
 
 /// A builder for creating a `Realme` instance.
 ///
@@ -57,75 +67,60 @@ impl RealmeBuilder {
     /// let builder = RealmeBuilder::new().load(adaptor);
     /// let realme = builder.build().expect("Failed to build Realme");
     /// ```
-    // pub fn build(mut self) -> Result<Realme, RealmeError> {
-    //     let (tx1, rx1) =
-    //         crossbeam::channel::unbounded::<super::watcher::Event>();
-    //     let (tx2, rx2) =
-    //         crossbeam::channel::unbounded::<super::watcher::Event>();
+    pub fn build(mut self) -> Result<Realme, RealmeError> {
+        let realme = self.parse(&None)?;
+        Ok(realme)
+    }
 
-    //     eprintln!("111");
-    //     let mut realme = self.parse()?;
-    //     eprintln!("222");
-    //     let builder_clone = Arc::new(Mutex::new(self));
-    //     thread::spawn(move || {
-    //         match rx1.recv() {
-    //             Ok(Event::Changed) => {
-    //                 tx2.send(Event::Stopped).unwrap();
-    //                 let mut builder = builder_clone.lock().unwrap();
-    //                 realme = builder.parse().unwrap();
-    //                 // return self.build();
-    //             },
-    //             Ok(e) => {
-    //                 RealmeError::Unknown(format!("{:?}", e));
-    //             }
-    //             Err(e) => {
-    //                 RealmeError::Unknown(format!("{:?}", e));
-    //             }
-    //             }
-    //     });
-    //     eprintln!("555");
-    //     Ok(realme)
-    // }
-    pub fn build(mut self) -> Result<SharedRealme, RealmeError> {
-        let (tx1, rx1) = crossbeam::channel::unbounded::<super::watcher::Event>();
-        let (tx2, rx2) = crossbeam::channel::unbounded::<super::watcher::Event>();
-        
-        let realme = self.parse((tx1.clone(), rx2.clone()))?;
+    pub fn shared_build(mut self) -> Result<SharedRealme, RealmeError> {
+        let (tx1, rx1) =
+            crossbeam::channel::unbounded::<super::watcher::Event>();
+        let (tx2, rx2) =
+            crossbeam::channel::unbounded::<super::watcher::Event>();
+
+        let realme = self.parse(&Some((tx1.clone(), rx2.clone())))?;
         let shared_realme = SharedRealme::new(realme);
         let realme_clone = shared_realme.inner.clone();
-        
+
         let builder_arc = Arc::new(Mutex::new(self));
-        
+
         thread::spawn(move || {
             loop {
                 match rx1.recv() {
                     Ok(Event::Changed) => {
-                        eprintln!("Changed");
-                        let mut builder = builder_arc.lock().expect("Failed to lock builder");
-                        match builder.parse((tx1.clone(), rx2.clone())) {
+                        let mut builder =
+                            builder_arc.lock().expect("Failed to lock builder");
+                        match builder.parse(&Some((tx1.clone(), rx2.clone()))) {
                             Ok(new_realme) => {
-                                eprintln!("new_realme: {:?}", new_realme);
-                                let mut realme = realme_clone.lock().expect("Failed to lock realme");
+                                let mut realme = realme_clone
+                                    .lock()
+                                    .expect("Failed to lock realme");
                                 *realme = new_realme;
-                            },
-                            Err(e) => eprintln!("Failed to parse: {:?}", e),
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to parse: {:?}", e);
+                            }
                         }
                         tx2.send(Event::Stopped).unwrap();
-                    },
-                    Ok(Event::Stopped) => break,
-                    Ok(e) => eprintln!("Unexpected event: {:?}", e),
-                    Err(e) => eprintln!("Channel error: {:?}", e),
+                    }
+                    Ok(e) => {
+                        tracing::error!("Unexpected event: {:?}", e);
+                        break;
+                    }
+                    Err(e) => {
+                        tracing::error!("Channel error: {:?}", e);
+                        break;
+                    }
                 }
             }
         });
-    
+
         Ok(shared_realme)
     }
 
-    
-    fn parse(&mut self, chan: Channel) -> RealmeResult<Realme> {
+    fn parse(&mut self, chan: &Option<Channel>) -> RealmeResult<Realme> {
         let mut cache = RealmeCache::new();
-    
+
         self.adaptors.sort_by(|a, b| a.priority.cmp(&b.priority));
         for adaptor in self.adaptors.iter().rev() {
             if adaptor.source_type() == SourceType::Env {
@@ -133,29 +128,13 @@ impl RealmeBuilder {
             } else {
                 cache.handle_adaptor(adaptor, false)?;
             }
-            adaptor.watcher(chan.clone());
+            if let Some(ref chan) = chan {
+                adaptor.watcher(chan.clone());
+            }
         }
-    
+
         Ok(Realme {
             cache: Value::Table(cache.cache),
-            builder: None,
         })
-    }
-}
-
-#[derive(Debug)]
-pub struct SharedRealme {
-    inner: Arc<Mutex<Realme>>,
-}
-
-impl SharedRealme {
-    pub fn new(realme: Realme) -> Self {
-        Self {
-            inner: Arc::new(Mutex::new(realme)),
-        }
-    }
-
-    pub fn get(&self) -> std::sync::MutexGuard<Realme> {
-        self.inner.lock().expect("Failed to lock realme")
     }
 }

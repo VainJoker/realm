@@ -99,25 +99,15 @@ where
     }
 
     fn watch(&self, chan: Channel, interval: Duration) {
-        eprintln!("666");
-        thread::spawn(move || {
-            loop {
-                thread::sleep(interval);
-
-                match chan.1.recv() {
-                    Ok(Event::Stopped) => break,
-                    Ok(e) => {
-                        RealmeError::Unknown(format!("{:?}", e));
-                        break;
-                    }
-                    Err(e) => {
-                        RealmeError::Unknown(format!("{:?}", e));
-                        break;
-                    }
-                }
+        thread::spawn(move || match chan.1.recv() {
+            Ok(Event::Stopped) => (),
+            Ok(e) => {
+                RealmeError::Unknown(format!("{e:?}"));
+            }
+            Err(e) => {
+                RealmeError::Unknown(format!("{e:?}"));
             }
         });
-        eprintln!("444");
         let path = self.path.as_ref().to_path_buf();
         thread::spawn(move || {
             let mut last_modified =
@@ -131,6 +121,5 @@ where
                 }
             }
         });
-        eprintln!("888");
     }
 }

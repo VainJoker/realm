@@ -13,7 +13,7 @@ fn main() {
             )))
             .watch(Duration::from_secs(3)),
         )
-        .build()
+        .shared_build()
         .expect("Building configuration object");
 
     // let value: String = realme
